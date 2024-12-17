@@ -1,20 +1,20 @@
-import mongoose, { Schema } from "mongoose";
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import mongoose, { Schema } from 'mongoose';
+import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 const userSchema = new Schema(
   {
-    username: {
-      type: string,
+    userName: {
+      type: String,
       required: true,
       unique: true,
-      lowercase: true,
-      trim: true,
       index: true,
+      trim: true,
+      lowerCase: true,
     },
 
     email: {
-      type: string,
+      type: String,
       required: true,
       unique: true,
       lowercase: true,
@@ -23,7 +23,7 @@ const userSchema = new Schema(
     },
 
     fullName: {
-      type: string,
+      type: String,
       required: true,
       unique: true,
       lowercase: true,
@@ -32,50 +32,57 @@ const userSchema = new Schema(
     },
 
     avatar: {
-      type: string, // cloudnary url
+      type: String, // cloudnary url
       required: true,
     },
 
     coverImage: {
-      type: string, // cloudnary url
+      type: String, // cloudnary url
     },
 
     password: {
-      type: string,
-      required: [true, "password is required"],
+      type: String,
+      required: [true, 'password is required'],
     },
 
     refreshToken: {
-      type: string,
+      type: String,
     },
 
     watchHistory: [
       {
         type: Schema.Types.ObjectId,
-        ref: "Video",
+        ref: 'Video',
       },
     ],
   },
+
   { timestamps: true }
 );
 
 userSchema.plugin(mongooseAggregatePaginate);
-
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  this.password = bcrypt.hash(this.password, 10);
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-  return await bcrypt.compare(this.password, password);
+  return await bcrypt.compare(password, this.password);
 };
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
-    { _id: this._id, email: this.email, fullName: this.fullName },
-    process.env.ACCESS_TOKEN_EXPIRY,
-    { expiresIn: process.env.ACCEsS_TOKEN_EXPIRY }
+    {
+      _id: this._id,
+      email: this.email,
+      userName: this.userName,
+      fullName: this.fullName,
+    },
+    process.env.ACCESS_TOKEN_SECRET,
+    {
+      expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+    }
   );
 };
 
@@ -85,8 +92,10 @@ userSchema.methods.generateRefreshToken = function () {
       _id: this._id,
     },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+    {
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY,
+    }
   );
 };
 
-export const User = mongoose.model("User", userSchema);
+export const User = mongoose.model('User', userSchema);
